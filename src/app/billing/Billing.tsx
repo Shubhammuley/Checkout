@@ -17,6 +17,7 @@ export interface BillingProps {
     navigateNextStep(): void;
     onReady?(): void;
     onUnhandledError(error: Error): void;
+    billingFromCb(formRef: any): void;
 }
 
 export interface WithCheckoutBillingProps {
@@ -56,6 +57,7 @@ class Billing extends Component<BillingProps & WithCheckoutBillingProps> {
         const {
             updateAddress,
             isInitializing,
+            billingFromCb,
             ...props
         } = this.props;
 
@@ -73,6 +75,7 @@ class Billing extends Component<BillingProps & WithCheckoutBillingProps> {
                 >
                     <BillingForm
                         { ...props }
+                        billingFromCb={ billingFromCb }
                         onSubmit={ this.handleSubmit }
                         updateAddress={ updateAddress }
                     />

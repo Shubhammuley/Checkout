@@ -1,6 +1,6 @@
 import React, { memo, FunctionComponent } from 'react';
 
-import { preventDefault } from '../common/dom';
+// import { preventDefault } from '../common/dom';
 import { TranslatedString } from '../locale';
 import { Legend } from '../ui/form';
 
@@ -14,8 +14,8 @@ interface ShippingHeaderProps {
 const ShippingHeader: FunctionComponent<ShippingHeaderProps> = ({
     isMultiShippingMode,
     isGuest,
-    onMultiShippingChange,
-    shouldShowMultiShipping,
+    // onMultiShippingChange,
+    // shouldShowMultiShipping,
 }) => (
     <div className="form-legend-container">
         <Legend testId="shipping-address-heading">
@@ -28,7 +28,7 @@ const ShippingHeader: FunctionComponent<ShippingHeaderProps> = ({
             />
         </Legend>
 
-        { shouldShowMultiShipping &&
+        { /* { shouldShowMultiShipping &&
             <a
                 data-test="shipping-mode-toggle"
                 href="#"
@@ -38,7 +38,7 @@ const ShippingHeader: FunctionComponent<ShippingHeaderProps> = ({
                     'shipping.ship_to_single' :
                     'shipping.ship_to_multi' }
                 />
-            </a> }
+            </a> } */ }
     </div>
 );
 

@@ -379,33 +379,39 @@ class Payment extends Component<PaymentProps & WithCheckoutPaymentProps & WithLa
             submitOrder,
         } = this.props;
 
-        const {
-            selectedMethod = defaultMethod,
-            submitFunctions,
-        } = this.state;
-
-        const customSubmit = selectedMethod && submitFunctions[
-            getUniquePaymentMethodId(selectedMethod.id, selectedMethod.gateway)
-        ];
-
-        if (customSubmit) {
-            return customSubmit(values);
+        const button = document.getElementById('checkout-billing-continue');
+        if (button) {
+           await button.click();
         }
+        setTimeout(async () => {
+            const {
+                selectedMethod = defaultMethod,
+                submitFunctions,
+            } = this.state;
 
-        try {
-            await submitOrder(mapToOrderRequestBody(values, isPaymentDataRequired()));
-            onSubmit();
-        } catch (error) {
-            if (error.type === 'payment_method_invalid') {
-                return loadPaymentMethods();
+            const customSubmit = selectedMethod && submitFunctions[
+                getUniquePaymentMethodId(selectedMethod.id, selectedMethod.gateway)
+            ];
+
+            if (customSubmit) {
+                return customSubmit(values);
             }
 
-            if (isCartChangedError(error)) {
-                return onCartChangedError(error);
-            }
+            try {
+                await submitOrder(mapToOrderRequestBody(values, isPaymentDataRequired()));
+                onSubmit();
+            } catch (error) {
+                if (error.type === 'payment_method_invalid') {
+                    return loadPaymentMethods();
+                }
 
-            onSubmitError(error);
-        }
+                if (isCartChangedError(error)) {
+                    return onCartChangedError(error);
+                }
+
+                onSubmitError(error);
+            }
+        }, 3000);
     };
 
     private setSelectedMethod: (method?: PaymentMethod) => void = method => {

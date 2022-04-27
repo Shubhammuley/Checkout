@@ -3,15 +3,15 @@ import classNames from 'classnames';
 import { find, findIndex } from 'lodash';
 import React, { lazy, Component, ReactNode } from 'react';
 
-import { StaticBillingAddress } from '../billing';
+// import { StaticBillingAddress } from '../billing';
 import { EmptyCartMessage } from '../cart';
 import { isCustomError, CustomError, ErrorLogger, ErrorModal } from '../common/error';
 import { retry } from '../common/utility';
-import { CheckoutSuggestion, CustomerInfo, CustomerSignOutEvent, CustomerViewType } from '../customer';
+import { CustomerViewType } from '../customer';
 import { isEmbedded, EmbeddedCheckoutStylesheet } from '../embeddedCheckout';
-import { withLanguage, TranslatedString, WithLanguageProps } from '../locale';
+import { withLanguage, WithLanguageProps } from '../locale';
 import { PromotionBannerList } from '../promotion';
-import { hasSelectedShippingOptions, isUsingMultiShipping, StaticConsignment } from '../shipping';
+import { hasSelectedShippingOptions, isUsingMultiShipping } from '../shipping';
 import { ShippingOptionExpiredError } from '../shipping/shippingOption';
 import { LazyContainer, LoadingNotification, LoadingOverlay } from '../ui/loading';
 import { MobileView } from '../ui/responsive';
@@ -19,7 +19,7 @@ import { MobileView } from '../ui/responsive';
 import mapToCheckoutProps from './mapToCheckoutProps';
 import navigateToOrderConfirmation from './navigateToOrderConfirmation';
 import withCheckout from './withCheckout';
-import CheckoutStep from './CheckoutStep';
+// import CheckoutStep from './CheckoutStep';
 import CheckoutStepStatus from './CheckoutStepStatus';
 import CheckoutStepType from './CheckoutStepType';
 import CheckoutSupport from './CheckoutSupport';
@@ -75,6 +75,8 @@ export interface CheckoutState {
     isCartEmpty: boolean;
     isRedirecting: boolean;
     hasSelectedShippingOptions: boolean;
+    showPayment: boolean;
+    formRef: any;
 }
 
 export interface WithCheckoutProps {
@@ -106,6 +108,8 @@ class Checkout extends Component<CheckoutProps & WithCheckoutProps & WithLanguag
         isRedirecting: false,
         isMultiShippingMode: false,
         hasSelectedShippingOptions: false,
+        showPayment: false,
+        formRef: null,
     };
 
     private embeddedMessenger?: EmbeddedCheckoutMessenger;
@@ -186,7 +190,6 @@ class Checkout extends Component<CheckoutProps & WithCheckoutProps & WithLanguag
     render(): ReactNode {
         const { error } = this.state;
         let errorModal = null;
-
         if (error) {
             if (isCustomError(error)) {
                 errorModal = <ErrorModal error={ error } onClose={ this.handleCloseErrorModal } title={ error.title } />;
@@ -239,6 +242,7 @@ class Checkout extends Component<CheckoutProps & WithCheckoutProps & WithLanguag
                     <LoadingNotification isLoading={ isPending } />
 
                     <PromotionBannerList promotions={ promotions } />
+                    { /* { console.log(steps) } */ }
 
                     <ol className="checkout-steps">
                         { steps
@@ -256,25 +260,36 @@ class Checkout extends Component<CheckoutProps & WithCheckoutProps & WithLanguag
     }
 
     private renderStep(step: CheckoutStepStatus): ReactNode {
+        const { showPayment } = this.state;
         switch (step.type) {
         case CheckoutStepType.Customer:
-            return this.renderCustomerStep(step);
+            if (!showPayment && CheckoutStepType.Customer === step.type) {
+                return this.renderCustomerStep();
+            }
 
         case CheckoutStepType.Shipping:
-            return this.renderShippingStep(step);
+            if (!showPayment && CheckoutStepType.Shipping === step.type) {
+                return this.renderShippingStep();
+            }
 
         case CheckoutStepType.Billing:
-            return this.renderBillingStep(step);
+            if (showPayment && CheckoutStepType.Billing === step.type) {
+                // console.log('-------------Billing', step , CheckoutStepType.Billing, CheckoutStepType.Billing === step.type);
+
+                return this.renderBillingStep();
+            }
 
         case CheckoutStepType.Payment:
-            return this.renderPaymentStep(step);
+            if (showPayment && CheckoutStepType.Payment === step.type) {
+                return this.renderPaymentStep();
+            }
 
         default:
             return null;
         }
     }
 
-    private renderCustomerStep(step: CheckoutStepStatus): ReactNode {
+    private renderCustomerStep(): ReactNode {
         const { isGuestEnabled } = this.props;
 
         const {
@@ -282,20 +297,20 @@ class Checkout extends Component<CheckoutProps & WithCheckoutProps & WithLanguag
         } = this.state;
 
         return (
-            <CheckoutStep
-                { ...step }
-                heading={ <TranslatedString id="customer.customer_heading" /> }
-                key={ step.type }
-                onEdit={ this.handleEditStep }
-                onExpanded={ this.handleExpanded }
-                suggestion={ <CheckoutSuggestion /> }
-                summary={
-                    <CustomerInfo
-                        onSignOut={ this.handleSignOut }
-                        onSignOutError={ this.handleError }
-                    />
-                }
-            >
+            // <CheckoutStep
+            //     { ...step }
+            //     heading={ <TranslatedString id="customer.customer_heading" /> }
+            //     key={ step.type }
+            //     onEdit={ this.handleEditStep }
+            //     onExpanded={ this.handleExpanded }
+            //     suggestion={ <CheckoutSuggestion /> }
+            //     summary={
+            //         <CustomerInfo
+            //             onSignOut={ this.handleSignOut }
+            //             onSignOutError={ this.handleError }
+            //         />
+            //     }
+            // >
                 <LazyContainer>
                     <Customer
                         checkEmbeddedSupport={ this.checkEmbeddedSupport }
@@ -311,15 +326,15 @@ class Checkout extends Component<CheckoutProps & WithCheckoutProps & WithLanguag
                         viewType={ customerViewType }
                     />
                 </LazyContainer>
-            </CheckoutStep>
+            // </CheckoutStep>
         );
     }
 
-    private renderShippingStep(step: CheckoutStepStatus): ReactNode {
+    private renderShippingStep(): ReactNode {
         const {
             hasCartChanged,
             cart,
-            consignments = [],
+            // consignments = [],
         } = this.props;
 
         const {
@@ -332,21 +347,21 @@ class Checkout extends Component<CheckoutProps & WithCheckoutProps & WithLanguag
         }
 
         return (
-            <CheckoutStep
-                { ...step }
-                heading={ <TranslatedString id="shipping.shipping_heading" /> }
-                key={ step.type }
-                onEdit={ this.handleEditStep }
-                onExpanded={ this.handleExpanded }
-                summary={ consignments.map(consignment =>
-                    <div className="staticConsignmentContainer" key={ consignment.id }>
-                        <StaticConsignment
-                            cart={ cart }
-                            compactView={ consignments.length < 2 }
-                            consignment={ consignment }
-                        />
-                    </div>) }
-            >
+            // <CheckoutStep
+            //     { ...step }
+            //     heading={ <TranslatedString id="shipping.shipping_heading" /> }
+            //     key={ step.type }
+            //     onEdit={ this.handleEditStep }
+            //     onExpanded={ this.handleExpanded }
+            //     summary={ consignments.map(consignment =>
+            //         <div className="staticConsignmentContainer" key={ consignment.id }>
+            //             <StaticConsignment
+            //                 cart={ cart }
+            //                 compactView={ consignments.length < 2 }
+            //                 consignment={ consignment }
+            //             />
+            //         </div>) }
+            // >
                 <LazyContainer>
                     <Shipping
                         cartHasChanged={ hasCartChanged }
@@ -358,49 +373,51 @@ class Checkout extends Component<CheckoutProps & WithCheckoutProps & WithLanguag
                         onSignIn={ this.handleShippingSignIn }
                         onToggleMultiShipping={ this.handleToggleMultiShipping }
                         onUnhandledError={ this.handleUnhandledError }
+                        showPayment={ this.showPaymentView }
                     />
                 </LazyContainer>
-            </CheckoutStep>
+            // </CheckoutStep>
         );
     }
 
-    private renderBillingStep(step: CheckoutStepStatus): ReactNode {
-        const { billingAddress } = this.props;
+    private renderBillingStep(): ReactNode {
+        // const { billingAddress } = this.props;
 
         return (
-            <CheckoutStep
-                { ...step }
-                heading={ <TranslatedString id="billing.billing_heading" /> }
-                key={ step.type }
-                onEdit={ this.handleEditStep }
-                onExpanded={ this.handleExpanded }
-                summary={ billingAddress && <StaticBillingAddress address={ billingAddress } /> }
-            >
+            // <CheckoutStep
+            //     { ...step }
+            //     heading={ <TranslatedString id="billing.billing_heading" /> }
+            //     key={ step.type }
+            //     onEdit={ this.handleEditStep }
+            //     onExpanded={ this.handleExpanded }
+            //     summary={ billingAddress && <StaticBillingAddress address={ billingAddress } /> }
+            // >
                 <LazyContainer>
                     <Billing
+                        billingFromCb={ this.handelBillingSubmit }
                         navigateNextStep={ this.navigateToNextIncompleteStep }
                         onReady={ this.handleReady }
                         onUnhandledError={ this.handleUnhandledError }
                     />
                 </LazyContainer>
-            </CheckoutStep>
+            // </CheckoutStep>
         );
     }
 
-    private renderPaymentStep(step: CheckoutStepStatus): ReactNode {
+    private renderPaymentStep(): ReactNode {
         const {
             consignments,
             cart,
         } = this.props;
 
         return (
-            <CheckoutStep
-                { ...step }
-                heading={ <TranslatedString id="payment.payment_heading" /> }
-                key={ step.type }
-                onEdit={ this.handleEditStep }
-                onExpanded={ this.handleExpanded }
-            >
+            // <CheckoutStep
+            //     { ...step }
+            //     heading={ <TranslatedString id="payment.payment_heading" /> }
+            //     key={ step.type }
+            //     onEdit={ this.handleEditStep }
+            //     onExpanded={ this.handleExpanded }
+            // >
                 <LazyContainer>
                     <Payment
                         checkEmbeddedSupport={ this.checkEmbeddedSupport }
@@ -414,7 +431,7 @@ class Checkout extends Component<CheckoutProps & WithCheckoutProps & WithLanguag
                         onUnhandledError={ this.handleUnhandledError }
                     />
                 </LazyContainer>
-            </CheckoutStep>
+            // </CheckoutStep>
         );
     }
 
@@ -486,9 +503,20 @@ class Checkout extends Component<CheckoutProps & WithCheckoutProps & WithLanguag
         this.navigateToStep(activeStep.type, options);
     };
 
+    private handelBillingSubmit: (formRef: any) => void = formRef => {
+       if (formRef.current) {
+          this.setState({ formRef });
+        }
+    };
     private navigateToOrderConfirmation: () => void = () => {
-        const { steps } = this.props;
+        const { formRef } = this.state;
+        if (formRef && formRef.current) {
+          formRef.current.handleSubmit();
+        }
 
+        // const element = document.getElementById('billing-page');
+        // console.log(element);
+        const { steps } = this.props;
         if (this.stepTracker) {
             this.stepTracker.trackStepCompleted(steps[steps.length - 1].type);
         }
@@ -537,11 +565,11 @@ class Checkout extends Component<CheckoutProps & WithCheckoutProps & WithLanguag
         this.setState({ error: undefined });
     };
 
-    private handleExpanded: (type: CheckoutStepType) => void = type => {
-        if (this.stepTracker) {
-           this.stepTracker.trackStepViewed(type);
-        }
-    };
+    // private handleExpanded: (type: CheckoutStepType) => void = type => {
+    //     if (this.stepTracker) {
+    //        this.stepTracker.trackStepViewed(type);
+    //     }
+    // };
 
     private handleUnhandledError: (error: Error) => void = error => {
         this.handleError(error);
@@ -561,39 +589,46 @@ class Checkout extends Component<CheckoutProps & WithCheckoutProps & WithLanguag
         }
     };
 
-    private handleEditStep: (type: CheckoutStepType) => void = type => {
-        this.navigateToStep(type);
-    };
+    // private handleEditStep: (type: CheckoutStepType) => void = type => {
+    //     this.navigateToStep(type);
+    // };
 
     private handleReady: () => void = () => {
         this.navigateToNextIncompleteStep({ isDefault: true });
+        // this.showPaymentView();
     };
 
-    private handleSignOut: (event: CustomerSignOutEvent) => void = ({ isCartEmpty }) => {
-        const { loginUrl, isGuestEnabled } = this.props;
-
-        if (this.embeddedMessenger) {
-            this.embeddedMessenger.postSignedOut();
-        }
-
-        if (isGuestEnabled) {
-            this.setCustomerViewType(CustomerViewType.Guest);
-        }
-
-        if (isCartEmpty) {
-            this.setState({ isCartEmpty: true });
-
-            if (!isEmbedded()) {
-                return window.top.location.assign(loginUrl);
-            }
-        }
-
-        this.navigateToStep(CheckoutStepType.Customer);
+    private showPaymentView: () => void = () => {
+        this.setState({
+            showPayment: true,
+        });
     };
+
+    // private handleSignOut: (event: CustomerSignOutEvent) => void = ({ isCartEmpty }) => {
+    //     const { loginUrl, isGuestEnabled } = this.props;
+
+    //     if (this.embeddedMessenger) {
+    //         this.embeddedMessenger.postSignedOut();
+    //     }
+
+    //     if (isGuestEnabled) {
+    //         this.setCustomerViewType(CustomerViewType.Guest);
+    //     }
+
+    //     if (isCartEmpty) {
+    //         this.setState({ isCartEmpty: true });
+
+    //         if (!isEmbedded()) {
+    //             return window.top.location.assign(loginUrl);
+    //         }
+    //     }
+
+    //     this.navigateToStep(CheckoutStepType.Customer);
+    // };
 
     private handleShippingNextStep: (isBillingSameAsShipping: boolean) => void = isBillingSameAsShipping => {
         this.setState({ isBillingSameAsShipping });
-
+        this.showPaymentView();
         if (isBillingSameAsShipping) {
             this.navigateToNextIncompleteStep();
         } else {

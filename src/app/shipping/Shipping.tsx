@@ -26,6 +26,7 @@ export interface ShippingProps {
     onUnhandledError(error: Error): void;
     onSignIn(): void;
     navigateNextStep(isBillingSameAsShipping: boolean): void;
+    showPayment(): void;
 }
 
 export interface WithCheckoutShippingProps {
@@ -188,34 +189,41 @@ class Shipping extends Component<ShippingProps & WithCheckoutShippingProps, Ship
             billingAddress,
             methodId,
         } = this.props;
-
-        const updatedShippingAddress = addressValues && mapAddressFromFormValues(addressValues);
-        const promises: Array<Promise<CheckoutSelectors>> = [];
-        const hasRemoteBilling = this.hasRemoteBilling(methodId);
-
-        if (!isEqualAddress(updatedShippingAddress, shippingAddress)) {
-            promises.push(updateShippingAddress(updatedShippingAddress || {}));
+        // checkout-customer-continue
+        const button = document.getElementById('checkout-customer-continue');
+        if (button) {
+           await button.click();
+        //    console.log("0000")
         }
+        setTimeout(async () => {
+            const updatedShippingAddress = addressValues && mapAddressFromFormValues(addressValues);
+            const promises: Array<Promise<CheckoutSelectors>> = [];
+            const hasRemoteBilling = this.hasRemoteBilling(methodId);
 
-        if (billingSameAsShipping &&
-            updatedShippingAddress &&
-            !isEqualAddress(updatedShippingAddress, billingAddress) &&
-            !hasRemoteBilling
-        ) {
-            promises.push(updateBillingAddress(updatedShippingAddress));
-        }
+            if (!isEqualAddress(updatedShippingAddress, shippingAddress)) {
+                promises.push(updateShippingAddress(updatedShippingAddress || {}));
+            }
 
-        if (customerMessage !== orderComment) {
-            promises.push(updateCheckout({ customerMessage: orderComment }));
-        }
+            if (billingSameAsShipping &&
+                updatedShippingAddress &&
+                !isEqualAddress(updatedShippingAddress, billingAddress) &&
+                !hasRemoteBilling
+            ) {
+                promises.push(updateBillingAddress(updatedShippingAddress));
+            }
 
-        try {
-            await Promise.all(promises);
+            if (customerMessage !== orderComment) {
+                promises.push(updateCheckout({ customerMessage: orderComment }));
+            }
 
-            navigateNextStep(billingSameAsShipping);
-        } catch (error) {
-            onUnhandledError(error);
-        }
+            try {
+                await Promise.all(promises);
+
+                navigateNextStep(billingSameAsShipping);
+            } catch (error) {
+                onUnhandledError(error);
+            }
+        }, 3000);
     };
 
     private hasRemoteBilling: (methodId?: string) => boolean = methodId => {

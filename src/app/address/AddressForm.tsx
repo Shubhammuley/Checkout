@@ -5,7 +5,7 @@ import React, { createRef, Component, ReactNode, RefObject } from 'react';
 
 import { withLanguage, TranslatedString, WithLanguageProps } from '../locale';
 import { AutocompleteItem } from '../ui/autocomplete';
-import { CheckboxFormField, DynamicFormField, DynamicFormFieldType, Fieldset } from '../ui/form';
+import { DynamicFormField, DynamicFormFieldType, Fieldset } from '../ui/form';
 
 import { AddressKeyMap } from './address';
 import { getAddressFormFieldInputId, getAddressFormFieldLegacyName } from './getAddressFormFieldInputId';
@@ -86,12 +86,13 @@ class AddressForm extends Component<AddressFormProps & WithLanguageProps> {
             countryCode,
             googleMapsApiKey,
             onAutocompleteToggle,
-            shouldShowSaveAddress,
+            // shouldShowSaveAddress,
         } = this.props;
 
         return (<>
             <Fieldset>
                 <div className="checkout-address" ref={ this.containerRef as RefObject<HTMLDivElement> }>
+                    { /* {console.log(formFields)} */ }
                     { formFields.map(field => {
                         const addressFieldName = field.name;
                         const translatedPlaceholderId = PLACEHOLDER[addressFieldName];
@@ -132,11 +133,11 @@ class AddressForm extends Component<AddressFormProps & WithLanguageProps> {
                     }) }
                 </div>
             </Fieldset>
-            { shouldShowSaveAddress &&
+            { /* { shouldShowSaveAddress &&
                 <CheckboxFormField
                     labelContent={ <TranslatedString id="address.save_in_addressbook" /> }
                     name={ fieldName ? `${fieldName}.shouldSaveAddress` : 'shouldSaveAddress' }
-                /> }
+                /> } */ }
         </>);
     }
 

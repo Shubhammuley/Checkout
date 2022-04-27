@@ -11,7 +11,7 @@ import { Button, ButtonVariant } from '../ui/button';
 import { Fieldset, Form } from '../ui/form';
 import { LoadingOverlay } from '../ui/loading';
 
-import StaticBillingAddress from './StaticBillingAddress';
+// import StaticBillingAddress from './StaticBillingAddress';
 
 export type BillingFormValues = AddressFormValues & { orderComment: string };
 
@@ -29,6 +29,7 @@ export interface BillingFormProps {
     onSubmit(values: BillingFormValues): void;
     onUnhandledError(error: Error): void;
     updateAddress(address: Partial<Address>): Promise<CheckoutSelectors>;
+    billingFromCb(formRef: any): void;
 }
 
 interface BillingFormState {
@@ -41,6 +42,7 @@ class BillingForm extends PureComponent<BillingFormProps & WithLanguageProps & F
     };
 
     private addressFormRef: RefObject<HTMLFieldSetElement> = createRef();
+    // private fromRef: RefObject<HTMLFieldSetElement> = createRef();
 
     render(): ReactNode {
         const {
@@ -55,6 +57,7 @@ class BillingForm extends PureComponent<BillingFormProps & WithLanguageProps & F
             shouldShowOrderComments,
             values,
             methodId,
+            // updateAddress,
         } = this.props;
 
         const shouldRenderStaticAddress = methodId === 'amazonpay';
@@ -68,11 +71,11 @@ class BillingForm extends PureComponent<BillingFormProps & WithLanguageProps & F
             isValidCustomerAddress(billingAddress, addresses, getFields(billingAddress.countryCode));
 
         return (
-            <Form autoComplete="on">
-                { shouldRenderStaticAddress && billingAddress &&
+            <Form autoComplete="on" callBackFunc={ this.callBackFunc } id="billing-page">
+                { /* { shouldRenderStaticAddress && billingAddress &&
                     <div className={ 'form-fieldset' }>
                         <StaticBillingAddress address={ billingAddress } />
-                    </div> }
+                    </div> } */ }
 
                 <Fieldset id="checkoutBillingAddress" ref={ this.addressFormRef }>
                     { hasAddresses && !shouldRenderStaticAddress &&
@@ -95,6 +98,7 @@ class BillingForm extends PureComponent<BillingFormProps & WithLanguageProps & F
                                 countryCode={ values.countryCode }
                                 formFields={ editableFormFields }
                                 googleMapsApiKey={ googleMapsApiKey }
+                                // onChange={ this.handleOnChange }
                                 setFieldValue={ setFieldValue }
                                 shouldShowSaveAddress={ !isGuest }
                             />
@@ -107,8 +111,10 @@ class BillingForm extends PureComponent<BillingFormProps & WithLanguageProps & F
                 <div className="form-actions">
                     <Button
                         disabled={ isUpdating || isResettingAddress }
+                        hidden={ true }
                         id="checkout-billing-continue"
                         isLoading={ isUpdating || isResettingAddress }
+                        style={ { display: 'none' } }
                         type="submit"
                         variant={ ButtonVariant.Primary }
                     >
@@ -119,6 +125,29 @@ class BillingForm extends PureComponent<BillingFormProps & WithLanguageProps & F
         );
     }
 
+    // componentDidMount: () => void = () => {
+    //     const { billingFromCb } = this.props;
+    //     billingFromCb(this.fromRef);
+    // };
+    private callBackFunc: (formRef: any) => void = formRef => {
+        const { billingFromCb } = this.props;
+        billingFromCb(formRef);
+    };
+    // private handleOnChange: (fieldName: string, value: string | string[]) => void = (fieldName, value) => {
+    //     // const {
+    //     //     updateAddress,
+    //     //     onUnhandledError,
+    //     // } = this.props;
+
+    //     // try {
+    //     //     await updateAddress({ [fieldName]: value });
+    //     // } catch (e) {
+    //     //     console.log(e);
+    //     //     onUnhandledError(e);
+    //     // }
+    //     // console.log(fieldName, value);
+    // };
+
     private handleSelectAddress: (address: Partial<Address>) => void = async address => {
         const {
             updateAddress,
@@ -128,6 +157,7 @@ class BillingForm extends PureComponent<BillingFormProps & WithLanguageProps & F
         this.setState({ isResettingAddress: true });
 
         try {
+            // console.log(address);
             await updateAddress(address);
         } catch (e) {
             onUnhandledError(e);
@@ -142,8 +172,8 @@ class BillingForm extends PureComponent<BillingFormProps & WithLanguageProps & F
 }
 
 export default withLanguage(withFormik<BillingFormProps & WithLanguageProps, BillingFormValues>({
-    handleSubmit: (values, { props: { onSubmit } }) => {
-        onSubmit(values);
+    handleSubmit: async (values, { props: { onSubmit } }) => {
+        await onSubmit(values);
     },
     mapPropsToValues: ({ getFields, customerMessage, billingAddress }) => (
         {
